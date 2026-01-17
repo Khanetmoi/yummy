@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Carte - Yummy | Excellence Culinaire</title>
+    <link rel="stylesheet" href="css/main-page.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Polices premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body class="main-page">
+    <!-- Header Minimaliste -->
+    <header class="header premium-header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <span class="logo-text">YUMMY</span>
+                    <span class="logo-subtitle">EXPERIENCE</span>
+                </a>
+                
+                <div class="nav-links premium-nav">
+                    <a href="index.html" class="nav-link active">
+                        <span class="nav-number">01</span>
+                        <span class="nav-label">LA CARTE</span>
+                    </a>
+                    <a href="subscription.html" class="nav-link">
+                        <span class="nav-number">02</span>
+                        <span class="nav-label">ABONNEMENTS</span>
+                    </a>
+                    <div class="user-profile">
+                        <i class="fas fa-user"></i>
+                        <span id="user-name">Bonjour</span>
+                    </div>
+                </div>
+                <button id="logout-btn" class="logout-btn" style="display: none;">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </button>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Hero Section Minimaliste -->
+    <section class="menu-hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">La Carte</h1>
+                <p class="hero-subtitle">Créations Signatures de Notre Chef Étoilé</p>
+                <div class="hero-divider"></div>
+                <p class="hero-description">
+                    Une sélection de plats préparés avec des ingrédients d'exception, 
+                    selon la philosophie culinaire de notre Chef.
+                </p>
+                
+                <!-- Sélecteur de jour premium -->
+                <div class="day-selector">
+                    <h3>Votre Sélection Hebdomadaire</h3>
+                    <div class="day-buttons">
+                        <button class="day-btn active" data-day="lundi">Lun</button>
+                        <button class="day-btn" data-day="mardi">Mar</button>
+                        <button class="day-btn" data-day="mercredi">Mer</button>
+                        <button class="day-btn" data-day="jeudi">Jeu</button>
+                        <button class="day-btn" data-day="vendredi">Ven</button>
+                        <button class="day-btn" data-day="samedi">Sam</button>
+                        <button class="day-btn" data-day="dimanche">Dim</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Main Content -->
+    <main class="main-content premium-menu">
+        <div class="container">
+            <!-- Section Menu avec style carte restaurant -->
+            <div class="restaurant-menu">
+                <!-- Colonne gauche - Menu classique -->
+                <div class="menu-column menu-classique">
+                    <div class="menu-section-header">
+                        <div class="section-number">01</div>
+                        <h2 class="section-title">Carte Classique</h2>
+                        <div class="section-subtitle">Disponible avec tous nos abonnements</div>
+                    </div>
+                    
+                    <!-- Catégories de menu -->
+                    <div class="menu-categories">
+                        <div class="category-item active" data-category="entrees">
+                            <span class="category-name">Entrées</span>
+                            <span class="category-count">4</span>
+                        </div>
+                        <div class="category-item" data-category="plats">
+                            <span class="category-name">Plats Principaux</span>
+                            <span class="category-count">6</span>
+                        </div>
+                        <div class="category-item" data-category="desserts">
+                            <span class="category-name">Desserts</span>
+                            <span class="category-count">3</span>
+                        </div>
+                        <div class="category-item" data-category="boissons">
+                            <span class="category-name">Vins & Boissons</span>
+                            <span class="category-count">5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colonne droite - Liste des plats -->
+                <div class="menu-column menu-items">
+                    <div class="dish-list" id="dish-list">
+                        <!-- Les plats seront chargés ici dynamiquement -->
+                    </div>
+                    
+                    <!-- Notes du Chef -->
+                    <div class="chef-notes">
+                        <div class="chef-icon">
+                            <i class="fas fa-hat-chef"></i>
+                        </div>
+                        <div class="notes-content">
+                            <h4>Notes du Chef</h4>
+                            <p>Tous nos plats sont préparés le matin même avec des ingrédients frais du marché.</p>
+                            <p class="signature">— Chef Éric Laurent</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Selection Overview -->
+<section class="weekly-overview" id="weekly-overview" style="display: none;">
+    <div class="container">
+        <div class="overview-header">
+            <h2><i class="fas fa-calendar-alt"></i> Votre Sélection Hebdomadaire</h2>
+            <p class="overview-subtitle">Revisez et confirmez vos choix pour la semaine</p>
+        </div>
+        
+        <!-- Weekly Timetable -->
+        <div class="weekly-timetable">
+            <div class="timetable-header">
+                <div class="time-slots">
+                    <div class="time-slot">Petit-déjeuner</div>
+                    <div class="time-slot">Déjeuner</div>
+                    <div class="time-slot">Dîner</div>
+                </div>
+            </div>
+            
+            <div class="timetable-body">
+                <!-- Days will be dynamically generated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Selection Summary -->
+        <div class="selection-summary">
+            <div class="summary-card">
+                <h3><i class="fas fa-clipboard-list"></i> Récapitulatif</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="summary-label">Total de plats:</span>
+                        <span class="summary-value" id="total-dishes">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Jours sélectionnés:</span>
+                        <span class="summary-value" id="selected-days">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Valeur estimée:</span>
+                        <span class="summary-value" id="estimated-value">0€</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Votre plan:</span>
+                        <span class="summary-value plan-badge" id="user-plan-badge">Or</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <h3><i class="fas fa-user-circle"></i> Vos Informations</h3>
+                <div class="user-info-summary">
+                    <div class="info-item">
+                        <i class="fas fa-user"></i>
+                        <span id="summary-name">John Doe</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-envelope"></i>
+                        <span id="summary-email">john@example.com</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-phone"></i>
+                        <span id="summary-phone">+33 1 23 45 67 89</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span id="summary-address">123 Rue de Paris, 75000 Paris</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Confirmation Actions -->
+        <div class="confirmation-actions">
+            <button class="btn btn-secondary" id="back-to-menu-btn">
+                <i class="fas fa-arrow-left"></i> Retour au menu
+            </button>
+            <button class="btn btn-primary" id="confirm-selection-btn">
+                <i class="fas fa-paper-plane"></i> Confirmer la commande
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- View Selection Button (floating) -->
+<button class="btn-floating" id="view-selection-btn">
+    <i class="fas fa-calendar-check"></i>
+    <span class="floating-badge" id="floating-badge">0</span>
+</button>
+    </main>
+    
+    <!-- Modal Premium pour les détails -->
+    <!-- Dans index.html, remplacez le modal existant par : -->
+
+<!-- Modal Premium pour les détails -->
+<div class="modal premium-modal" id="dish-modal">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-container">
+        <!-- Header du modal avec infos utilisateur -->
+        <div class="modal-header">
+            <div class="user-context">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <div id="modal-user-name">Client Yummy</div>
+                    <div class="user-plan" id="modal-user-plan">Abonnement Or</div>
+                </div>
+            </div>
+            <div class="modal-actions-header">
+                <button class="btn-icon" id="modal-favorite">
+                    <i class="far fa-heart"></i>
+                </button>
+                <button class="modal-close" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Hero image du plat -->
+        <div class="modal-hero">
+            <div class="hero-image-container">
+                <img id="modal-dish-image" src="" alt="Image du plat" class="dish-hero-image">
+                <div class="hero-overlay">
+                    <div class="dish-timing">
+                        <i class="fas fa-clock"></i>
+                        <span id="modal-prep-time">25 min</span>
+                    </div>
+                    <div class="dish-difficulty">
+                        <i class="fas fa-chef-hat"></i>
+                        <span>Chef étoilé</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Corps du modal -->
+        <div class="modal-body">
+            <div class="dish-meta">
+                <div class="dish-title-section">
+                    <h1 id="modal-dish-title">Salade de Homard</h1>
+                    <div class="dish-price-large" id="modal-dish-price">45€</div>
+                </div>
+                <div class="dish-subtitle">
+                    <span class="dish-origin" id="modal-dish-origin">
+                        <i class="fas fa-map-marker-alt"></i> Bretagne, France
+                    </span>
+                    <span class="dish-calories" id="modal-calories">
+                        <i class="fas fa-fire"></i> 420 kcal
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Navigation des sections -->
+            <div class="modal-nav">
+                <button class="modal-nav-btn active" data-section="description">Description</button>
+                <button class="modal-nav-btn" data-section="ingredients">Ingrédients</button>
+                <button class="modal-nav-btn" data-section="pairing">Accords</button>
+                <button class="modal-nav-btn" data-section="customization">Personnalisation</button>
+            </div>
+            
+            <!-- Sections de contenu -->
+            <div class="modal-sections">
+                <!-- Section Description -->
+                <section class="modal-section active" id="section-description">
+                    <div class="section-content">
+                        <p class="dish-description" id="modal-dish-description">
+                            Une délicate salade mettant en valeur le homard frais de Bretagne...
+                        </p>
+                        <div class="chef-story">
+                            <h3><i class="fas fa-book"></i> L'Histoire du Chef</h3>
+                            <p id="modal-dish-story">Créée lors d'un séjour en Bretagne...</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Ingrédients -->
+                <section class="modal-section" id="section-ingredients">
+                    <div class="ingredients-showcase">
+                        <h3><i class="fas fa-seedling"></i> Ingrédients d'Exception</h3>
+                        <div class="ingredients-grid" id="modal-ingredients-grid">
+                            <!-- Les ingrédients seront ajoutés dynamiquement -->
+                        </div>
+                        <div class="nutrition-info">
+                            <h4>Valeurs Nutritionnelles</h4>
+                            <div class="nutrition-grid">
+                                <div class="nutrition-item">
+                                    <span>Protéines</span>
+                                    <strong id="modal-protein">28g</strong>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>Glucides</span>
+                                    <strong id="modal-carbs">35g</strong>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>Lipides</span>
+                                    <strong id="modal-fat">22g</strong>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>Fibres</span>
+                                    <strong id="modal-fiber">8g</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Accords -->
+                <section class="modal-section" id="section-pairing">
+                    <div class="pairing-section">
+                        <h3><i class="fas fa-wine-glass-alt"></i> Accords Recommandés</h3>
+                        <div class="pairing-grid">
+                            <div class="pairing-item">
+                                <div class="pairing-icon">🍷</div>
+                                <div class="pairing-details">
+                                    <h4>Vin Blanc</h4>
+                                    <p>Sancerre ou Chablis</p>
+                                    <span class="pairing-note">Accord parfait</span>
+                                </div>
+                            </div>
+                            <div class="pairing-item">
+                                <div class="pairing-icon">🥖</div>
+                                <div class="pairing-details">
+                                    <h4>Pain</h4>
+                                    <p>Pain de campagne bio</p>
+                                    <span class="pairing-note">Recommandé</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Personnalisation -->
+                <section class="modal-section" id="section-customization">
+                    <div class="customization-section">
+                        <h3><i class="fas fa-sliders-h"></i> Personnalisez Votre Plat</h3>
+                        <p class="customization-intro">Adaptez ce plat selon vos préférences :</p>
+                        <div class="customization-options" id="customization-options">
+                            <!-- Options dynamiques -->
+                        </div>
+                        <div class="allergy-notice">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Prévenez-nous de vos allergies dans les notes spéciales</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Footer du modal -->
+            <div class="modal-footer">
+                <div class="selection-info">
+                    <div class="day-selector-mini">
+                        <label for="select-day">
+                            <i class="fas fa-calendar-day"></i> Pour quel jour ?
+                        </label>
+                        <select id="select-day">
+                            <option>Lundi</option>
+                            <option>Mardi</option>
+                            <option>Mercredi</option>
+                            <option>Jeudi</option>
+                            <option>Vendredi</option>
+                            <option>Samedi</option>
+                            <option>Dimanche</option>
+                        </select>
+                    </div>
+                    <div class="special-notes">
+                        <input type="text" id="special-notes" placeholder="Notes spéciales pour le chef...">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="add-to-favorites">
+                        <i class="far fa-heart"></i> Favori
+                    </button>
+                    <button class="btn btn-primary" id="confirm-selection">
+                        <i class="fas fa-check"></i> Ajouter à mon menu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    
+    <!-- Footer Premium -->
+    <footer class="footer premium-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-main">
+                    <div class="footer-logo">
+                        <i class="fas fa-crown"></i>
+                        <div>
+                            <h3>YUMMY EXPERIENCE</h3>
+                            <p>Excellence culinaire depuis 2010</p>
+                        </div>
+                    </div>
+                    <div class="footer-links">
+                        <a href="#">Notre Philosophie</a>
+                        <a href="#">Nos Chefs</a>
+                        <a href="#">Durabilité</a>
+                        <a href="#">Presse</a>
+                    </div>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-phone"></i> +33 1 23 45 67 89</p>
+                        <p><i class="fas fa-envelope"></i> contact@yummy-experience.com</p>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2024 Yummy Experience. Tous droits réservés.</p>
+                    <div class="footer-social">
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
