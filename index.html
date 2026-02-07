@@ -4,51 +4,914 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yummy - Livraison de repas</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #ff6b6b;
+            --primary-dark: #ee5a5a;
+            --secondary: #4ecdc4;
+            --dark: #2c3e50;
+            --light: #f7f9fc;
+            --white: #ffffff;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .logo::before {
+            content: "🍽️";
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .page {
+            display: none;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-container {
+            max-width: 400px;
+            margin: 3rem auto;
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #666;
+        }
+
+        .auth-switch a {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .subscription-container {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .plan-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            transition: transform 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .plan-card.popular {
+            border-color: var(--primary);
+        }
+
+        .plan-card.current {
+            border-color: var(--secondary);
+            background: linear-gradient(135deg, #f0fffe 0%, #ffffff 100%);
+        }
+
+        .current-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary);
+            color: var(--white);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: var(--white);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .plan-price span {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--secondary);
+            font-weight: bold;
+        }
+
+        .current-sub-details {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            text-align: left;
+        }
+
+        .current-sub-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .current-sub-title {
+            font-size: 1.8rem;
+            color: var(--secondary);
+            font-weight: bold;
+        }
+
+        .sub-status {
+            background: var(--secondary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .sub-status.inactive {
+            background: #95a5a6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .menu-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .category-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .category-tab {
+            padding: 0.8rem 1.5rem;
+            background: var(--white);
+            border: 2px solid #e0e0e0;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .category-tab.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .subcategories {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .subcategory {
+            padding: 0.5rem 1rem;
+            background: var(--light);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .subcategory:hover, .subcategory.active {
+            background: var(--secondary);
+            color: var(--white);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .menu-item {
+            background: var(--white);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .menu-image {
+            height: 180px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .menu-content {
+            padding: 1.5rem;
+        }
+
+        .menu-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .menu-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-price {
+            font-size: 1.3rem;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .menu-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--white);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            transition: right 0.3s;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cart-overlay.open {
+            right: 0;
+        }
+
+        .cart-header {
+            padding: 1.5rem;
+            background: var(--primary);
+            color: var(--white);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .cart-item-image {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            overflow: hidden;
+        }
+
+        .cart-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cart-item-details {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        .cart-item-note {
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+            margin-top: 0.3rem;
+        }
+
+        .cart-item-price {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .cart-footer {
+            padding: 1.5rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .cart-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .delivery-info {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .close-cart {
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .cart-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .detail-section {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: var(--radius);
+        }
+
+        .ingredients-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .ingredient-tag {
+            background: var(--white);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+        }
+
+        .calorie-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .note-section textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            margin-top: 0.5rem;
+        }
+
+        .dashboard {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .subscription-badge {
+            background: var(--secondary);
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .quota-bar {
+            background: #e0e0e0;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .quota-fill {
+            background: var(--primary);
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        /* Orders Section Styles - CORRECTED */
+        .orders-section {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .order-card-client {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--warning);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .order-card-client.accepted {
+            border-left-color: var(--success);
+        }
+
+        .order-card-client.denied {
+            border-left-color: var(--danger);
+        }
+
+        .order-header-client {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .order-status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .order-status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .order-status-badge.accepted {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .order-status-badge.denied {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 8px;
+            z-index: 400;
+            min-width: 250px;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .cart-overlay {
+                width: 100%;
+                right: -100%;
+            }
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Navigation -->
-<nav>
-    <div class="logo">Yummy</div>
-    <div class="nav-links">
-        <a href="#" id="nav-home">Accueil</a>
-        <a href="#" id="nav-menu">Menu</a>
-        <a href="#" id="nav-subscriptions">Abonnements</a>
-        <div class="user-info">
-            <span id="user-name"></span>
-            <button class="btn btn-primary" id="login-btn">Connexion</button>
-            <button class="btn btn-secondary hidden" id="logout-btn">Déconnexion</button>
-        </div>
-        <div class="cart-icon">
-            🛒
-            <span class="cart-count" id="cart-count">0</span>
-        </div>
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
     </div>
-</nav>
 
-    <!-- Home Page -->
+    <nav>
+        <div class="logo" onclick="showPage('home')">Yummy</div>
+        <div class="nav-links">
+            <a onclick="showPage('home')">Accueil</a>
+            <a onclick="showPage('menu')">Menu</a>
+            <a onclick="showPage('subscriptions')">Abonnements</a>
+            <a onclick="showPage('orders')" id="orders-link" class="hidden">Mes Commandes</a>
+            <div class="user-info">
+                <span id="user-name"></span>
+                <button class="btn btn-primary" onclick="showPage('login')" id="login-btn">Connexion</button>
+                <button class="btn btn-secondary hidden" onclick="logout()" id="logout-btn">Déconnexion</button>
+            </div>
+            <div class="cart-icon" onclick="toggleCart()">
+                🛒
+                <span class="cart-count" id="cart-count">0</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Home -->
     <div id="home" class="page active">
-        <div class="hero">
-            <h1>Bienvenue chez Yummy !</h1>
-            <p>Des repas délicieux livrés chez vous. Économisez avec nos abonnements ou commandez à l'unité.</p>
-            <button class="btn btn-primary" onclick="showPage('menu')">Découvrir le menu</button>
+        <div style="text-align: center; padding: 4rem 2rem;">
+            <h1 style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">Bienvenue chez Yummy !</h1>
+            <p style="font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto 2rem;">
+                Des repas délicieux livrés chez vous. Économisez avec nos abonnements ou commandez à l'unité.
+            </p>
+            <button class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem;" onclick="showPage('menu')">
+                Découvrir le menu
+            </button>
         </div>
     </div>
 
-    <!-- Login Page -->
+    <!-- Login -->
     <div id="login" class="page">
         <div class="auth-container">
             <h2>Connexion</h2>
             <form onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label>Nom</label>
-                    <input type="text" id="login-name" required>
+                    <label>Email</label>
+                    <input type="email" id="login-email" required>
                 </div>
                 <div class="form-group">
                     <label>Mot de passe</label>
                     <input type="password" id="login-password" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Se connecter</button>
+                <div class="error-message" id="login-error"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="login-submit">Se connecter</button>
             </form>
             <div class="auth-switch">
                 Pas encore de compte ? <a onclick="showPage('signup')">S'inscrire</a>
@@ -56,13 +919,13 @@
         </div>
     </div>
 
-    <!-- Signup Page -->
+    <!-- Signup -->
     <div id="signup" class="page">
         <div class="auth-container">
             <h2>Inscription</h2>
             <form onsubmit="handleSignup(event)">
                 <div class="form-group">
-                    <label>Nom</label>
+                    <label>Nom complet</label>
                     <input type="text" id="signup-name" required>
                 </div>
                 <div class="form-group">
@@ -71,7 +934,7 @@
                 </div>
                 <div class="form-group">
                     <label>Mot de passe</label>
-                    <input type="password" id="signup-password" required>
+                    <input type="password" id="signup-password" required minlength="6">
                 </div>
                 <div class="form-group">
                     <label>Adresse de livraison</label>
@@ -81,7 +944,8 @@
                     <label>Téléphone</label>
                     <input type="tel" id="signup-phone" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">S'inscrire</button>
+                <div class="error-message" id="signup-error"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="signup-submit">S'inscrire</button>
             </form>
             <div class="auth-switch">
                 Déjà un compte ? <a onclick="showPage('login')">Se connecter</a>
@@ -89,27 +953,55 @@
         </div>
     </div>
 
-    <!-- Subscriptions Page -->
+    <!-- Subscriptions -->
     <div id="subscriptions" class="page">
         <div class="subscription-container">
             <h2 id="sub-page-title">Choisissez votre abonnement</h2>
-            <p class="subtitle" id="sub-page-subtitle">Des économies garanties pour vos repas</p>
             
             <div id="current-sub-container" class="hidden">
-                <!-- Injecté par JS -->
+                <div class="current-sub-details">
+                    <div class="current-sub-header">
+                        <div class="current-sub-title" id="current-sub-name">-</div>
+                        <span class="sub-status" id="sub-status-badge">Actif</span>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-remaining">0</div>
+                            <div class="stat-label">Plats restants</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">Plats total</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-used">0</div>
+                            <div class="stat-label">Plats utilisés</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <p><strong>Catégories:</strong> <span id="sub-categories">-</span></p>
+                        <p style="margin-top: 0.5rem;"><strong>Valide jusqu'au:</strong> <span id="sub-end-date">-</span></p>
+                    </div>
+
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <button class="btn btn-secondary" onclick="showPage('menu')">Commander maintenant</button>
+                    </div>
+                </div>
             </div>
 
-            <div id="available-plans">
-                <!-- Injecté par JS -->
+            <div id="available-plans" class="plans-grid">
+                <!-- Filled dynamically from Firestore -->
             </div>
         </div>
     </div>
 
-    <!-- Menu Page -->
+    <!-- Menu -->
     <div id="menu" class="page">
         <div class="menu-header">
             <h2>Notre Menu</h2>
-            <p class="subtitle">Des plats préparés avec amour par nos chefs</p>
+            <p style="color: #666;">Des plats préparés avec amour par nos chefs</p>
         </div>
 
         <div class="category-tabs">
@@ -118,16 +1010,42 @@
             <div class="category-tab" onclick="selectCategory('dinner')" id="tab-dinner">Dîner</div>
         </div>
 
-        <div class="subcategories" id="subcategories"></div>
+        <div class="subcategories" id="subcategories">
+            <div class="subcategory active" onclick="selectSubcategory('all')">Tous</div>
+        </div>
 
         <div id="user-dashboard" class="dashboard hidden">
-            <!-- Injecté par JS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3>Abonnement <span id="sub-type" class="subscription-badge">-</span></h3>
+                    <p style="color: #666; margin-top: 0.5rem;">
+                        Plats restants: <span id="remaining-meals" style="font-weight: bold; color: var(--primary);">0</span> / <span id="total-meals">0</span>
+                    </p>
+                    <div class="quota-bar">
+                        <div class="quota-fill" id="quota-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="menu-grid" id="menu-grid"></div>
     </div>
 
-    <!-- Cart Sidebar -->
+    <!-- Orders - CORRECTED STRUCTURE -->
+    <div id="orders" class="page">
+        <div class="orders-section">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Mes Commandes</h2>
+            
+            <!-- Debug info - remove in production -->
+            <div id="orders-debug" style="display: none; background: #f0f0f0; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.85rem;"></div>
+            
+            <div id="orders-list">
+                <p style="text-align: center; color: #666; padding: 3rem;">Chargement de vos commandes...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart -->
     <div class="cart-overlay" id="cart">
         <div class="cart-header">
             <h3>Votre Panier</h3>
@@ -142,22 +1060,894 @@
                 <span>Total:</span>
                 <span id="cart-total">0€</span>
             </div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="validateOrder()">
+            <button class="btn btn-primary" style="width: 100%;" onclick="validateOrder()" id="validate-btn">
                 Valider la commande
             </button>
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Item Modal -->
     <div class="modal-overlay" id="modal">
         <div class="modal">
             <button class="modal-close" onclick="closeModal()">×</button>
-            <h3 id="modal-title"></h3>
+            <h3 id="modal-title">Détail</h3>
             <div id="modal-content"></div>
         </div>
     </div>
 
-    <!-- Script principal -->
-    <script type="module" src="js/app.js"></script>
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCceMsLRbfSyi-akEecSmcnpqYmlg5Nak4",
+            authDomain: "yummy-8bceb.firebaseapp.com",
+            projectId: "yummy-8bceb",
+            storageBucket: "yummy-8bceb.firebasestorage.app",
+            messagingSenderId: "970955071017",
+            appId: "1:970955071017:web:12184754ab204a8b36c638",
+            measurementId: "G-V1XEV4Q36B"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Data
+        let menuData = { breakfast: [], lunch: [], dinner: [] };
+        let subcategories = { breakfast: [], lunch: [], dinner: [] };
+        let subscriptionPlans = {};
+
+        // State
+        let currentUser = null;
+        let currentUserData = null;
+        let currentCategory = 'breakfast';
+        let currentSubcategory = 'all';
+        let cart = [];
+        let currentSubscription = null;
+        let unsubSubscription = null;
+        let unsubOrders = null;
+        let userOrders = []; // Store orders locally
+
+        // Init
+        window.onload = async function() {
+            showLoading(true);
+            
+            await loadConfigData();
+            
+            auth.onAuthStateChanged(async (user) => {
+                showLoading(true);
+                if (user) {
+                    currentUser = user;
+                    await loadUserData();
+                    subscribeToSubscription();
+                    subscribeToOrders(); // Setup real-time listener
+                } else {
+                    currentUser = null;
+                    currentUserData = null;
+                    currentSubscription = null;
+                    cart = [];
+                    userOrders = [];
+                    if (unsubSubscription) unsubSubscription();
+                    if (unsubOrders) unsubOrders();
+                    renderClientOrders([]); // Clear orders display
+                }
+                updateUI();
+                renderMenu();
+                showLoading(false);
+            });
+        };
+
+        async function loadConfigData() {
+            try {
+                // Load plans
+                const plansSnap = await db.collection('plans').where('active', '==', true).get();
+                plansSnap.forEach(doc => {
+                    subscriptionPlans[doc.id] = doc.data();
+                });
+                
+                if (Object.keys(subscriptionPlans).length === 0) {
+                    subscriptionPlans = {
+                        bon: { name: 'Bon', meals: 7, categories: ['lunch'], price: 29, features: ['Accès Déjeuner', '7 plats/semaine'] },
+                        delicieux: { name: 'Délicieux', meals: 14, categories: ['breakfast', 'lunch'], price: 49, features: ['Petit-déj + Déjeuner', '14 plats/semaine'] },
+                        exquis: { name: 'Exquis', meals: 14, categories: ['breakfast', 'lunch', 'dinner'], price: 69, features: ['Tous les repas', '14 plats/semaine'] }
+                    };
+                }
+                
+                // Load subcategories
+                const subcatSnap = await db.collection('config').doc('subcategories').get();
+                if (subcatSnap.exists) {
+                    subcategories = subcatSnap.data();
+                }
+                
+                // Load meals
+                const mealsSnap = await db.collection('meals').get();
+                mealsSnap.forEach(doc => {
+                    const meal = doc.data();
+                    meal.id = doc.id;
+                    if (menuData[meal.category]) {
+                        menuData[meal.category].push(meal);
+                    }
+                });
+                
+                if (mealsSnap.empty) {
+                    await initializeDefaultMeals();
+                }
+                
+            } catch (error) {
+                console.error("Error loading config:", error);
+            }
+        }
+
+        async function initializeDefaultMeals() {
+            const defaults = [
+                { name: "Croissant", price: 3.50, category: "breakfast", subcategory: "pastry", emoji: "🥐", description: "Croissant pur beurre", ingredients: ["Farine", "Beurre"], calories: 280 },
+                { name: "Burger", price: 12.50, category: "lunch", subcategory: "burger", emoji: "🍔", description: "Bœuf et cheddar", ingredients: ["Pain", "Bœuf"], calories: 850 }
+            ];
+            
+            const batch = db.batch();
+            defaults.forEach(meal => {
+                batch.set(db.collection('meals').doc(), meal);
+            });
+            await batch.commit();
+            
+            const newSnap = await db.collection('meals').get();
+            newSnap.forEach(doc => {
+                const meal = doc.data();
+                meal.id = doc.id;
+                if (menuData[meal.category]) {
+                    menuData[meal.category].push(meal);
+                }
+            });
+        }
+
+        async function loadUserData() {
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) {
+                    currentUserData = doc.data();
+                }
+            } catch (error) {
+                console.error("Error loading user data:", error);
+            }
+        }
+
+        function subscribeToSubscription() {
+            if (unsubSubscription) unsubSubscription();
+            
+            unsubSubscription = db.collection('subscriptions')
+                .doc(currentUser.uid)
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        currentSubscription = doc.data();
+                        checkAndResetSubscription();
+                        updateSubscriptionUI();
+                        renderMenu();
+                    } else {
+                        currentSubscription = null;
+                        updateSubscriptionUI();
+                        renderMenu();
+                    }
+                }, (error) => {
+                    console.error("Subscription listener error:", error);
+                });
+        }
+
+        // CORRECTED: Subscribe to orders with better error handling
+        function subscribeToOrders() {
+            if (!currentUser) {
+                console.log("No user logged in, skipping orders subscription");
+                return;
+            }
+            
+            if (unsubOrders) unsubOrders();
+            
+            console.log("Setting up orders listener for user:", currentUser.uid);
+            
+            // Show loading state
+            const ordersList = document.getElementById('orders-list');
+            if (ordersList && !document.getElementById('orders').classList.contains('active')) {
+                ordersList.innerHTML = '<p style="text-align: center; color: #666; padding: 3rem;">Chargement de vos commandes...</p>';
+            }
+            
+            unsubOrders = db.collection('orders')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    console.log("Orders snapshot received, count:", snapshot.docs.length);
+                    
+                    userOrders = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        console.log("Order:", doc.id, data);
+                        return { id: doc.id, ...data };
+                    });
+                    
+                    // Update debug info
+                    const debugDiv = document.getElementById('orders-debug');
+                    if (debugDiv) {
+                        debugDiv.style.display = 'block';
+                        debugDiv.innerHTML = `
+                            <strong>Debug Info:</strong><br>
+                            User ID: ${currentUser.uid}<br>
+                            Orders found: ${userOrders.length}<br>
+                            Last update: ${new Date().toLocaleTimeString()}
+                        `;
+                    }
+                    
+                    // Always render, even if empty
+                    renderClientOrders(userOrders);
+                    
+                }, (error) => {
+                    console.error("Orders subscription error:", error);
+                    
+                    const ordersList = document.getElementById('orders-list');
+                    if (ordersList) {
+                        ordersList.innerHTML = `
+                            <div style="text-align: center; padding: 3rem; color: #e74c3c;">
+                                <p>Erreur lors du chargement des commandes.</p>
+                                <p style="font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</p>
+                                <button class="btn btn-primary" onclick="subscribeToOrders()" style="margin-top: 1rem;">Réessayer</button>
+                            </div>
+                        `;
+                    }
+                });
+        }
+
+        // CORRECTED: Render orders function with null checks
+        function renderClientOrders(orders) {
+            const container = document.getElementById('orders-list');
+            if (!container) {
+                console.error("Orders container not found!");
+                return;
+            }
+            
+            console.log("Rendering orders:", orders.length);
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: #666;">
+                        <p style="font-size: 1.1rem; margin-bottom: 1rem;">Vous n'avez pas encore passé de commande.</p>
+                        <button class="btn btn-primary" onclick="showPage('menu')" style="margin-top: 1rem;">Découvrir le menu</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = orders.map(order => {
+                // Safely get date
+                let dateStr = 'Date inconnue';
+                try {
+                    if (order.createdAt && order.createdAt.toDate) {
+                        dateStr = order.createdAt.toDate().toLocaleString('fr-FR');
+                    } else if (order.createdAt) {
+                        dateStr = new Date(order.createdAt).toLocaleString('fr-FR');
+                    }
+                } catch (e) {
+                    console.error("Date parsing error:", e);
+                }
+                
+                const status = order.status || 'pending';
+                const statusConfig = {
+                    pending: { text: '⏳ En attente de validation', color: '#f39c12', bg: '#fff3cd' },
+                    accepted: { text: '✓ Commande acceptée', color: '#27ae60', bg: '#e8f5e9' },
+                    denied: { text: '✗ Commande refusée', color: '#e74c3c', bg: '#ffebee' }
+                };
+                const config = statusConfig[status] || statusConfig.pending;
+                
+                // Safely get items
+                const items = order.items || [];
+                const totalPrice = order.totalPrice || 0;
+                
+                return `
+                    <div class="order-card-client ${status}">
+                        <div class="order-header-client">
+                            <div>
+                                <strong style="font-size: 1.2rem;">Commande #${order.id ? order.id.slice(-6).toUpperCase() : 'N/A'}</strong>
+                                <p style="color: #666; font-size: 0.9rem; margin-top: 0.3rem;">${dateStr}</p>
+                            </div>
+                            <span class="order-status-badge ${status}" style="background: ${config.bg}; color: ${config.color}; border: 2px solid ${config.color};">
+                                ${config.text}
+                            </span>
+                        </div>
+                        
+                        <div style="background: var(--light); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                            ${items.length > 0 ? items.map(item => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e0e0e0;">
+                                    <span>${item.emoji || '🍽️'} ${item.name || 'Plat'}</span>
+                                    <span>${item.price > 0 ? item.price.toFixed(2) + '€' : '<span style="color: var(--success);">Inclus</span>'}</span>
+                                </div>
+                            `).join('') : '<p style="color: #666;">Aucun détail disponible</p>'}
+                            <div style="text-align: right; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid #ddd; font-weight: bold; color: var(--primary);">
+                                Total: ${totalPrice.toFixed(2)}€
+                            </div>
+                        </div>
+                        
+                        ${status === 'accepted' ? `
+                            <div style="background: #e8f5e9; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                                <strong style="color: #155724;">✓ Votre commande est confirmée !</strong>
+                                <p style="color: #155724; font-size: 0.9rem; margin-top: 0.3rem;">
+                                    Livraison estimée: ${order.estimatedDelivery && order.estimatedDelivery.toDate ? order.estimatedDelivery.toDate().toLocaleString('fr-FR') : 'Prochainement'}
+                                </p>
+                            </div>
+                        ` : ''}
+                        
+                        ${status === 'denied' ? `
+                            <div style="background: #ffebee; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                                <strong style="color: #c62828;">✗ Commande refusée</strong>
+                                <p style="color: #c62828; font-size: 0.9rem; margin-top: 0.3rem;">
+                                    Contactez-nous pour plus d'informations.
+                                </p>
+                            </div>
+                        ` : ''}
+                        
+                        ${status === 'pending' ? `
+                            <div style="background: #fff3e0; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                                <strong style="color: #ef6c00;">⏳ En attente de validation</strong>
+                                <p style="color: #ef6c00; font-size: 0.9rem; margin-top: 0.3rem;">
+                                    Nous vérifions votre commande. Vous serez notifié dès qu'elle sera traitée.
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkAndResetSubscription() {
+            if (!currentSubscription || currentSubscription.status !== 'active') return;
+            
+            const now = new Date();
+            const lastReset = currentSubscription.lastReset?.toDate();
+            if (!lastReset) return;
+            
+            const daysSinceReset = Math.floor((now - lastReset) / (1000 * 60 * 60 * 24));
+            
+            if (daysSinceReset >= 7) {
+                const weeksPassed = Math.floor(daysSinceReset / 7);
+                const newRemaining = Math.min(
+                    currentSubscription.meals,
+                    currentSubscription.remainingMeals + (weeksPassed * currentSubscription.meals)
+                );
+                
+                db.collection('subscriptions').doc(currentUser.uid).update({
+                    remainingMeals: newRemaining,
+                    lastReset: firebase.firestore.Timestamp.fromDate(new Date(lastReset.getTime() + (weeksPassed * 7 * 24 * 60 * 60 * 1000))),
+                    weeklyUsed: 0
+                });
+            }
+        }
+
+        // Auth
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-submit');
+            
+            btn.disabled = true;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showAlert('Connexion réussie !', 'success');
+                showPage('home');
+            } catch (error) {
+                document.getElementById('login-error').textContent = getErrorMessage(error.code);
+                document.getElementById('login-error').classList.add('show');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const address = document.getElementById('signup-address').value;
+            const phone = document.getElementById('signup-phone').value;
+            const btn = document.getElementById('signup-submit');
+            
+            btn.disabled = true;
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await cred.user.updateProfile({ displayName: name });
+                await db.collection('users').doc(cred.user.uid).set({
+                    name, email, address, phone,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showAlert('Inscription réussie !', 'success');
+                showPage('home');
+            } catch (error) {
+                document.getElementById('signup-error').textContent = getErrorMessage(error.code);
+                document.getElementById('signup-error').classList.add('show');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function logout() {
+            if (unsubSubscription) unsubSubscription();
+            if (unsubOrders) unsubOrders();
+            await auth.signOut();
+            cart = [];
+            userOrders = [];
+            updateCartUI();
+            showAlert('Déconnexion réussie', 'success');
+            showPage('home');
+        }
+
+        function getErrorMessage(code) {
+            const messages = {
+                'auth/invalid-email': 'Email invalide',
+                'auth/user-not-found': 'Utilisateur non trouvé',
+                'auth/wrong-password': 'Mot de passe incorrect',
+                'auth/email-already-in-use': 'Email déjà utilisé',
+                'auth/weak-password': 'Mot de passe trop faible'
+            };
+            return messages[code] || 'Erreur de connexion';
+        }
+
+        // Subscription
+        async function subscribe(plan) {
+            if (!currentUser) {
+                showAlert('Connectez-vous d\'abord', 'error');
+                showPage('login');
+                return;
+            }
+
+            if (currentSubscription?.status === 'active') {
+                if (!confirm('Changer de plan ?')) return;
+            }
+
+            const planData = subscriptionPlans[plan];
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setMonth(endDate.getMonth() + 1);
+
+            const data = {
+                userId: currentUser.uid,
+                plan,
+                name: planData.name,
+                meals: planData.meals,
+                categories: planData.categories,
+                remainingMeals: planData.meals,
+                totalMeals: planData.meals,
+                weeklyUsed: 0,
+                startDate: firebase.firestore.Timestamp.fromDate(startDate),
+                endDate: firebase.firestore.Timestamp.fromDate(endDate),
+                lastReset: firebase.firestore.Timestamp.fromDate(startDate),
+                status: 'active',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('subscriptions').doc(currentUser.uid).set(data);
+                showAlert(`Abonnement ${data.name} activé !`, 'success');
+                showPage('menu');
+            } catch (error) {
+                showAlert('Erreur lors de l\'activation', 'error');
+            }
+        }
+
+        // Orders
+        async function validateOrder() {
+            if (cart.length === 0) {
+                showAlert('Panier vide', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('validate-btn');
+            btn.disabled = true;
+            btn.textContent = 'Traitement...';
+
+            try {
+                const orderItems = [];
+                let subscriptionMealsUsed = 0;
+                
+                for (const item of cart) {
+                    const isCovered = currentSubscription?.status === 'active' && 
+                                     currentSubscription.categories.includes(currentCategory) &&
+                                     currentSubscription.remainingMeals > subscriptionMealsUsed;
+                    
+                    const price = isCovered ? 0 : item.price;
+                    if (isCovered) subscriptionMealsUsed++;
+                    
+                    orderItems.push({
+                        itemId: item.id,
+                        name: item.name,
+                        price: price,
+                        emoji: item.emoji,
+                        note: item.note || '',
+                        category: currentCategory,
+                        coveredBySubscription: isCovered
+                    });
+                }
+
+                const totalPrice = orderItems.reduce((sum, item) => sum + item.price, 0);
+                const deliveryHours = Math.ceil(cart.length / 2) * 24;
+                const estimatedDelivery = new Date();
+                estimatedDelivery.setHours(estimatedDelivery.getHours() + deliveryHours);
+
+                const orderData = {
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    items: orderItems,
+                    totalPrice,
+                    status: 'pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    estimatedDelivery: firebase.firestore.Timestamp.fromDate(estimatedDelivery),
+                    deliveryAddress: currentUserData?.address || '',
+                    subscriptionMealsUsed,
+                    userName: currentUserData?.name || currentUser.displayName || '',
+                    userPhone: currentUserData?.phone || ''
+                };
+
+                console.log("Creating order:", orderData);
+                
+                const docRef = await db.collection('orders').add(orderData);
+                console.log("Order created with ID:", docRef.id);
+
+                if (subscriptionMealsUsed > 0) {
+                    await db.collection('subscriptions').doc(currentUser.uid).update({
+                        remainingMeals: firebase.firestore.FieldValue.increment(-subscriptionMealsUsed),
+                        weeklyUsed: firebase.firestore.FieldValue.increment(subscriptionMealsUsed)
+                    });
+                }
+
+                showAlert(`Commande envoyée ! En attente de validation.`, 'success');
+                
+                cart = [];
+                updateCartUI();
+                toggleCart();
+                
+                // Force refresh orders and show page
+                showPage('orders');
+                
+            } catch (error) {
+                console.error("Order error:", error);
+                showAlert('Erreur lors de la commande: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Valider la commande';
+            }
+        }
+
+        // UI Functions
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            if (pageId === 'menu') renderMenu();
+            if (pageId === 'subscriptions') renderSubscriptionPage();
+            if (pageId === 'orders') {
+                // Force re-render of orders when showing page
+                renderClientOrders(userOrders);
+            }
+            
+            window.scrollTo(0, 0);
+        }
+
+        function updateUI() {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userName = document.getElementById('user-name');
+            const ordersLink = document.getElementById('orders-link');
+            
+            if (currentUser) {
+                loginBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                ordersLink.classList.remove('hidden');
+                userName.textContent = `Bonjour, ${currentUserData?.name || currentUser.displayName || ''}`;
+            } else {
+                loginBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                ordersLink.classList.add('hidden');
+                userName.textContent = '';
+            }
+        }
+
+        function renderSubscriptionPage() {
+            const currentContainer = document.getElementById('current-sub-container');
+            const availablePlans = document.getElementById('available-plans');
+            const title = document.getElementById('sub-page-title');
+            
+            availablePlans.innerHTML = Object.entries(subscriptionPlans).map(([key, plan]) => `
+                <div class="plan-card ${plan.popular ? 'popular' : ''}" id="plan-${key}">
+                    ${plan.popular ? '<div class="popular-badge">Populaire</div>' : ''}
+                    <div class="plan-name">${plan.name}</div>
+                    <div class="plan-price">${plan.price}€<span>/semaine</span></div>
+                    <ul class="plan-features">
+                        ${plan.features.map(f => `<li>${f}</li>`).join('')}
+                    </ul>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="subscribe('${key}')">
+                        ${currentSubscription?.plan === key ? 'Renouveler' : 'Choisir'}
+                    </button>
+                </div>
+            `).join('');
+            
+            if (currentSubscription?.status === 'active') {
+                currentContainer.classList.remove('hidden');
+                title.textContent = 'Votre Abonnement';
+                updateSubscriptionUI();
+                
+                const planCard = document.getElementById(`plan-${currentSubscription.plan}`);
+                if (planCard) {
+                    planCard.classList.add('current');
+                    const badge = document.createElement('div');
+                    badge.className = 'current-badge';
+                    badge.textContent = 'Actif';
+                    planCard.insertBefore(badge, planCard.firstChild);
+                }
+            } else {
+                currentContainer.classList.add('hidden');
+                title.textContent = 'Choisissez votre abonnement';
+            }
+        }
+
+        function updateSubscriptionUI() {
+            if (!currentSubscription) return;
+            
+            document.getElementById('current-sub-name').textContent = currentSubscription.name;
+            document.getElementById('stat-remaining').textContent = currentSubscription.remainingMeals;
+            document.getElementById('stat-total').textContent = currentSubscription.meals;
+            document.getElementById('stat-used').textContent = currentSubscription.weeklyUsed || 0;
+            
+            const catNames = { breakfast: 'Petit-déjeuner', lunch: 'Déjeuner', dinner: 'Dîner' };
+            document.getElementById('sub-categories').textContent = 
+                currentSubscription.categories.map(c => catNames[c]).join(', ');
+            
+            const endDate = currentSubscription.endDate?.toDate();
+            if (endDate) {
+                document.getElementById('sub-end-date').textContent = endDate.toLocaleDateString('fr-FR');
+            }
+            
+            const statusBadge = document.getElementById('sub-status-badge');
+            statusBadge.textContent = currentSubscription.status === 'active' ? 'Actif' : 'Inactif';
+            statusBadge.className = 'sub-status' + (currentSubscription.status !== 'active' ? ' inactive' : '');
+        }
+
+        // Menu
+        function selectCategory(category) {
+            currentCategory = category;
+            currentSubcategory = 'all';
+            
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${category}`).classList.add('active');
+            
+            const subContainer = document.getElementById('subcategories');
+            subContainer.innerHTML = subcategories[category]?.map(sub => 
+                `<div class="subcategory ${sub.id === 'all' ? 'active' : ''}" onclick="selectSubcategory('${sub.id}')">${sub.name}</div>`
+            ).join('') || '<div class="subcategory active">Tous</div>';
+            
+            if (currentSubscription?.status === 'active') {
+                const hasAccess = currentSubscription.categories.includes(category);
+                if (!hasAccess) {
+                    showAlert('Non inclus dans votre abonnement', 'error');
+                    const firstAvailable = currentSubscription.categories[0];
+                    if (firstAvailable) {
+                        selectCategory(firstAvailable);
+                        return;
+                    }
+                }
+            }
+            
+            renderMenu();
+        }
+
+        function selectSubcategory(sub) {
+            currentSubcategory = sub;
+            document.querySelectorAll('.subcategory').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMenu();
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menu-grid');
+            const dashboard = document.getElementById('user-dashboard');
+            
+            if (currentSubscription?.status === 'active') {
+                dashboard.classList.remove('hidden');
+                document.getElementById('sub-type').textContent = currentSubscription.name;
+                document.getElementById('remaining-meals').textContent = currentSubscription.remainingMeals;
+                document.getElementById('total-meals').textContent = currentSubscription.meals;
+                const pct = (currentSubscription.remainingMeals / currentSubscription.meals) * 100;
+                document.getElementById('quota-bar').style.width = pct + '%';
+            } else {
+                dashboard.classList.add('hidden');
+            }
+            
+            let items = menuData[currentCategory] || [];
+            if (currentSubcategory !== 'all') {
+                items = items.filter(i => i.subcategory === currentSubcategory);
+            }
+            
+            const hasAccess = currentSubscription?.status === 'active' && 
+                             currentSubscription.categories.includes(currentCategory);
+            
+            grid.innerHTML = items.map(item => `
+                <div class="menu-item">
+                    <div class="menu-image" style="${item.image ? `background-image: url(${item.image}); background-size: cover;` : ''}">
+                        ${!item.image ? item.emoji || '🍽️' : ''}
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">${item.name}</div>
+                        <div class="menu-description">${item.description}</div>
+                        <div class="menu-footer">
+                            ${!hasAccess ? 
+                                `<div class="menu-price">${item.price.toFixed(2)}€</div>` : 
+                                '<div class="menu-price" style="color: var(--secondary);">Inclus</div>'
+                            }
+                            <div class="menu-actions">
+                                <button class="btn btn-secondary btn-small" onclick="showDetails('${item.id}')">Détails</button>
+                                <button class="btn btn-primary btn-small" onclick="addToCart('${item.id}')">Ajouter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showDetails(itemId) {
+            const item = Object.values(menuData).flat().find(i => i.id === itemId);
+            if (!item) return;
+            
+            document.getElementById('modal-title').textContent = item.name;
+            document.getElementById('modal-content').innerHTML = `
+                <div style="text-align: center; font-size: 4rem; margin-bottom: 1rem;">${item.emoji || '🍽️'}</div>
+                <p style="text-align: center; color: #666; margin-bottom: 1.5rem;">${item.description}</p>
+                
+                <div class="detail-section">
+                    <h4>🥗 Ingrédients</h4>
+                    <div class="ingredients-list">
+                        ${item.ingredients?.map(ing => `<span class="ingredient-tag">${ing}</span>`).join('') || ''}
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>🔥 Calories</h4>
+                    <div class="calorie-badge">⚡ ${item.calories} kcal</div>
+                </div>
+                
+                <div class="note-section">
+                    <h4>📝 Note (allergies/préférences)</h4>
+                    <textarea id="item-note-${item.id}" placeholder="Ex: Sans gluten..."></textarea>
+                </div>
+                
+                <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="saveNoteAndAdd('${item.id}')">
+                    Ajouter au panier
+                </button>
+            `;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function saveNoteAndAdd(itemId) {
+            const note = document.getElementById(`item-note-${itemId}`)?.value.trim() || '';
+            closeModal();
+            addToCart(itemId, note);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Cart
+        function addToCart(itemId, note = '') {
+            if (!currentUser) {
+                showAlert('Connectez-vous pour commander', 'error');
+                showPage('login');
+                return;
+            }
+            
+            const item = Object.values(menuData).flat().find(i => i.id === itemId);
+            if (!item) return;
+            
+            if (currentSubscription?.status === 'active') {
+                const hasAccess = currentSubscription.categories.includes(currentCategory);
+                if (!hasAccess) {
+                    showAlert('Non inclus dans votre abonnement', 'error');
+                    return;
+                }
+                if (currentSubscription.remainingMeals <= cart.filter(i => 
+                    currentSubscription.categories.includes(currentCategory)
+                ).length) {
+                    showAlert('Limite d\'abonnement atteinte', 'error');
+                    return;
+                }
+            }
+            
+            cart.push({ ...item, note });
+            updateCartUI();
+            showAlert(`${item.name} ajouté`, 'success');
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const count = document.getElementById('cart-count');
+            const items = document.getElementById('cart-items');
+            const total = document.getElementById('cart-total');
+            
+            count.textContent = cart.length;
+            
+            const deliveryHours = Math.ceil(cart.length / 2) * 24;
+            document.getElementById('delivery-time').textContent = deliveryHours <= 24 ? '24h' : `${deliveryHours}h`;
+            
+            if (cart.length === 0) {
+                items.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">Panier vide</p>';
+                total.textContent = '0€';
+                return;
+            }
+            
+            const grouped = {};
+            cart.forEach((item, idx) => {
+                const key = `${item.id}-${item.note}`;
+                if (!grouped[key]) {
+                    grouped[key] = { ...item, quantity: 0, firstIndex: idx };
+                }
+                grouped[key].quantity++;
+            });
+            
+            let priceTotal = 0;
+            const hasActiveSub = currentSubscription?.status === 'active';
+            
+            items.innerHTML = Object.values(grouped).map(item => {
+                const isCovered = hasActiveSub && currentSubscription.categories.includes(currentCategory);
+                const itemPrice = isCovered ? 0 : item.price * item.quantity;
+                priceTotal += itemPrice;
+                
+                return `
+                    <div class="cart-item">
+                        <div class="cart-item-image" style="${item.image ? `background-image: url(${item.image}); background-size: cover;` : ''}">
+                            ${!item.image ? item.emoji || '🍽️' : ''}
+                        </div>
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div style="font-size: 0.9rem; color: #666;">Qté: ${item.quantity}</div>
+                            ${item.note ? `<div class="cart-item-note">${item.note}</div>` : ''}
+                            ${!isCovered ? `<div class="cart-item-price">${itemPrice.toFixed(2)}€</div>` : ''}
+                        </div>
+                        <button onclick="removeFromCart(${item.firstIndex})" style="background: none; border: none; cursor: pointer;">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+            
+            total.textContent = priceTotal === 0 ? 'Abonnement' : `${priceTotal.toFixed(2)}€`;
+        }
+
+        function toggleCart() {
+            document.getElementById('cart').classList.toggle('open');
+        }
+
+        // Utilities
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }, 3000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        // Event listeners
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.addEventListener('click', function(e) {
+            const cart = document.getElementById('cart');
+            const cartIcon = document.querySelector('.cart-icon');
+            if (cart.classList.contains('open') && 
+                !cart.contains(e.target) && 
+                !cartIcon.contains(e.target)) {
+                cart.classList.remove('open');
+            }
+        });
+    </script>
 </body>
 </html>
